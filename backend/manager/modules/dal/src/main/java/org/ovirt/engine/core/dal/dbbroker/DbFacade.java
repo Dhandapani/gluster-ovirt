@@ -90,6 +90,7 @@ import org.ovirt.engine.core.dao.VmPoolDAO;
 import org.ovirt.engine.core.dao.VmStaticDAO;
 import org.ovirt.engine.core.dao.VmStatisticsDAO;
 import org.ovirt.engine.core.dao.VmTemplateDAO;
+import org.ovirt.engine.core.dao.gluster.GlusterVolumeDAO;
 import org.ovirt.engine.core.utils.linq.LinqUtils;
 import org.ovirt.engine.core.utils.linq.Predicate;
 import org.ovirt.engine.core.utils.log.Log;
@@ -136,7 +137,7 @@ public class DbFacade {
     private JdbcTemplate jdbcTemplate;
 
     private DbEngineDialect dbEngineDialect;
-    private SimpleJdbcCallsHandler callsHandler = new SimpleJdbcCallsHandler();
+    private final SimpleJdbcCallsHandler callsHandler = new SimpleJdbcCallsHandler();
 
     private int onStartConnectionTimeout;
 
@@ -755,6 +756,10 @@ public class DbFacade {
      */
     public StepDao getStepDao() {
         return getDAO(StepDao.class);
+    }
+
+    public GlusterVolumeDAO getGlusterVolumeDAO() {
+        return getDAO(GlusterVolumeDAO.class);
     }
 
     public void setOnStartConnectionTimeout(int onStartConnectionTimeout) {
