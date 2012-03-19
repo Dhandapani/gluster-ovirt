@@ -11,6 +11,7 @@ import org.ovirt.engine.ui.common.widget.table.column.SafeHtmlColumn;
 import org.ovirt.engine.ui.uicommonweb.UICommand;
 import org.ovirt.engine.ui.uicommonweb.models.userportal.UserPortalItemModel;
 import org.ovirt.engine.ui.uicommonweb.models.userportal.UserPortalListModel;
+import org.ovirt.engine.ui.userportal.ApplicationConstants;
 import org.ovirt.engine.ui.userportal.ApplicationResources;
 import org.ovirt.engine.ui.userportal.ApplicationTemplates;
 import org.ovirt.engine.ui.userportal.gin.ClientGinjectorProvider;
@@ -27,12 +28,14 @@ import org.ovirt.engine.ui.userportal.widget.extended.vm.BorderedCompositeCell;
 import org.ovirt.engine.ui.userportal.widget.extended.vm.ConsoleButtonCell;
 import org.ovirt.engine.ui.userportal.widget.extended.vm.ConsoleButtonCell.ConsoleButtonCommand;
 import org.ovirt.engine.ui.userportal.widget.extended.vm.ImageButtonCell;
+import org.ovirt.engine.ui.userportal.widget.extended.vm.ImageMaskCell;
+import org.ovirt.engine.ui.userportal.widget.extended.vm.ImageMaskCell.ShowMask;
 import org.ovirt.engine.ui.userportal.widget.extended.vm.TooltipCell;
+import org.ovirt.engine.ui.userportal.widget.extended.vm.TooltipCell.TooltipProvider;
 import org.ovirt.engine.ui.userportal.widget.extended.vm.UserPortalItemSimpleColumn;
 import org.ovirt.engine.ui.userportal.widget.table.column.VmImageColumn;
 import org.ovirt.engine.ui.userportal.widget.table.column.VmImageColumn.OsTypeExtractor;
 import org.ovirt.engine.ui.userportal.widget.table.column.VmStatusColumn;
-import org.ovirt.engine.ui.userportal.widget.extended.vm.TooltipCell.TooltipProvider;
 
 import com.google.gwt.cell.client.CompositeCell;
 import com.google.gwt.cell.client.HasCell;
@@ -57,6 +60,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
 
     private static final VmTableResources vmTableResources = GWT.create(VmTableResources.class);
     private final MainTabBasicListItemMessagesTranslator statusTranslator;
+    private final ApplicationConstants constants;
 
     @Inject
     public SideTabExtendedVirtualMachineView(UserPortalListProvider modelProvider,
@@ -67,7 +71,8 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
             ErrorPopupManager errorPopupManager,
             ConsolePopupPresenterWidget consolePopup,
             EventBus eventBus,
-            MainTabBasicListItemMessagesTranslator translator) {
+            MainTabBasicListItemMessagesTranslator translator,
+            ApplicationConstants constants) {
         super(modelProvider);
         this.applicationResources = applicationResources;
         this.consoleManager = consoleManager;
@@ -75,6 +80,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
         this.consolePopup = consolePopup;
         this.eventBus = eventBus;
         this.statusTranslator = translator;
+        this.constants = constants;
         applicationResources.sideTabExtendedVmStyle().ensureInjected();
         initTable(templates, consoleUtils);
     }
@@ -104,8 +110,19 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
                     }
                 });
 
-        TooltipCell<UserPortalItemModel> vmImageTooltipColumn = new TooltipCell<UserPortalItemModel>(
+        ImageMaskCell<UserPortalItemModel> vmImageColumnWithMask = new ImageMaskCell<UserPortalItemModel>(
                 vmImageColumn,
+                applicationResources.disabledSmallMask(),
+                new ShowMask<UserPortalItemModel>() {
+                    @Override
+                    public boolean showMask(UserPortalItemModel value) {
+                        return !value.IsVmUp();
+                    }
+                }
+                );
+
+        TooltipCell<UserPortalItemModel> vmImageColumnWithMaskAndTooltip = new TooltipCell<UserPortalItemModel>(
+                new UserPortalItemSimpleColumn(vmImageColumnWithMask),
                 new TooltipProvider<UserPortalItemModel>() {
                     @Override
                     public String getTooltip(UserPortalItemModel value) {
@@ -114,7 +131,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
 
                 });
 
-        getTable().addColumn(new UserPortalItemSimpleColumn(vmImageTooltipColumn), "", "77px");
+        getTable().addColumn(new UserPortalItemSimpleColumn(vmImageColumnWithMaskAndTooltip), "", "77px");
 
         TooltipCell<UserPortalItemModel> statusColumn = new TooltipCell<UserPortalItemModel>(
                 new VmStatusColumn(),
@@ -156,7 +173,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
                 consoleUtils,
                 applicationResources.sideTabExtendedVmStyle().enabledConsoleButton(),
                 applicationResources.sideTabExtendedVmStyle().disabledConsoleButton(),
-                "Open Console",
+                constants.openConsoleLabel(),
                 new ConsoleButtonCommand() {
 
                     @Override
@@ -175,7 +192,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
                 consoleUtils,
                 applicationResources.sideTabExtendedVmStyle().enabledEditConsoleButton(),
                 applicationResources.sideTabExtendedVmStyle().disabledEditConsoleButton(),
-                "Edit Console Options",
+                constants.editConsoleLabel(),
                 new ConsoleButtonCommand() {
 
                     @Override
@@ -255,6 +272,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
                     }
                 }
 
+                @SuppressWarnings("unchecked")
                 List<UserPortalItemModel> selectedModels = (List<UserPortalItemModel>) getModel().getSelectedItems();
 
                 if (selectedModels == null) {
@@ -273,12 +291,12 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
     }
 
     protected CompositeCell<UserPortalItemModel> createActionsCompositeCell() {
-        ImageButtonCell<UserPortalItemModel> runCell = new ImageButtonCell<UserPortalItemModel>() {
+        ImageButtonCell<UserPortalItemModel> runCell = new VmButtonsImageButtonCell() {
 
             @Override
             protected UserPortalImageButtonDefinition<UserPortalItemModel> createButtonDefinition(final UserPortalItemModel data) {
                 return new UserPortalImageButtonDefinition<UserPortalItemModel>(
-                        data.getIsPool() ? "Take VM" : "Run",
+                        data.getIsPool() ? constants.takeVmLabel() : constants.runVmLabel(),
                         applicationResources.playIcon(),
                         applicationResources.playDisabledIcon()
                 ) {
@@ -292,12 +310,12 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
             }
         };
 
-        ImageButtonCell<UserPortalItemModel> shutdownCell = new ImageButtonCell<UserPortalItemModel>() {
+        ImageButtonCell<UserPortalItemModel> shutdownCell = new VmButtonsImageButtonCell() {
 
             @Override
             protected UserPortalImageButtonDefinition<UserPortalItemModel> createButtonDefinition(final UserPortalItemModel data) {
                 return new UserPortalImageButtonDefinition<UserPortalItemModel>(
-                        data.getIsPool() ? "Return VM" : "Shutdown",
+                        data.getIsPool() ? constants.returnVmLabel() : constants.shutdownVmLabel(),
                         applicationResources.stopIcon(),
                         applicationResources.stopDisabledIcon()
                 ) {
@@ -311,12 +329,12 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
             }
         };
 
-        ImageButtonCell<UserPortalItemModel> pauseCell = new ImageButtonCell<UserPortalItemModel>() {
+        ImageButtonCell<UserPortalItemModel> suspendCell = new VmButtonsImageButtonCell() {
 
             @Override
             protected UserPortalImageButtonDefinition<UserPortalItemModel> createButtonDefinition(final UserPortalItemModel data) {
                 return new UserPortalImageButtonDefinition<UserPortalItemModel>(
-                        "Pause",
+                        constants.suspendVmLabel(),
                         applicationResources.pauseIcon(),
                         applicationResources.pauseDisabledIcon()
                 ) {
@@ -330,12 +348,12 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
             }
         };
 
-        ImageButtonCell<UserPortalItemModel> stopCell = new ImageButtonCell<UserPortalItemModel>() {
+        ImageButtonCell<UserPortalItemModel> stopCell = new VmButtonsImageButtonCell() {
 
             @Override
             protected UserPortalImageButtonDefinition<UserPortalItemModel> createButtonDefinition(final UserPortalItemModel data) {
                 return new UserPortalImageButtonDefinition<UserPortalItemModel>(
-                        "Stop",
+                        constants.stopVmLabel(),
                         applicationResources.powerIcon(),
                         applicationResources.powerDisabledIcon()
                 ) {
@@ -355,7 +373,7 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
                                 Arrays.asList(
                                         new UserPortalItemSimpleColumn(runCell),
                                         new UserPortalItemSimpleColumn(shutdownCell),
-                                        new UserPortalItemSimpleColumn(pauseCell),
+                                        new UserPortalItemSimpleColumn(suspendCell),
                                         new UserPortalItemSimpleColumn(stopCell)
                                         )
                         )
@@ -370,5 +388,14 @@ public class SideTabExtendedVirtualMachineView extends AbstractSideTabWithDetail
         @Override
         @Source({ CellTable.Style.DEFAULT_CSS, "org/ovirt/engine/ui/userportal/css/ExtendedVmListTable.css" })
         TableStyle cellTableStyle();
+    }
+
+    abstract class VmButtonsImageButtonCell extends ImageButtonCell<UserPortalItemModel> {
+
+        public VmButtonsImageButtonCell() {
+            super(applicationResources.sideTabExtendedVmStyle().vmButtonEnabled(),
+                    applicationResources.sideTabExtendedVmStyle().vmButtonDisabled());
+        }
+
     }
 }

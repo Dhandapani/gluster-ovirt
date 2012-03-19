@@ -2,7 +2,15 @@ package org.ovirt.engine.ui.userportal;
 
 import org.ovirt.engine.ui.common.CommonApplicationConstants;
 
+import com.google.gwt.i18n.client.Constants.DefaultStringValue;
+
 public interface ApplicationConstants extends CommonApplicationConstants {
+
+    @DefaultStringValue("About")
+    String aboutPopupCaption();
+
+    @DefaultStringValue("")
+    String copyRightNotice();
 
     // Login section
 
@@ -122,5 +130,30 @@ public interface ApplicationConstants extends CommonApplicationConstants {
 
     @DefaultStringValue("Network Usage")
     String vmMonitorNetworkUsageLabel();
+
+    // Buttons on extended tab main grid
+    @DefaultStringValue("Take VM")
+    String takeVmLabel();
+
+    @DefaultStringValue("Run")
+    String runVmLabel();
+
+    @DefaultStringValue("Return VM")
+    String returnVmLabel();
+
+    @DefaultStringValue("Shutdown")
+    String shutdownVmLabel();
+
+    @DefaultStringValue("Suspend")
+    String suspendVmLabel();
+
+    @DefaultStringValue("Stop")
+    String stopVmLabel();
+
+    @DefaultStringValue("Open Console")
+    String openConsoleLabel();
+
+    @DefaultStringValue("Edit Console Options")
+    String editConsoleLabel();
 
 }
