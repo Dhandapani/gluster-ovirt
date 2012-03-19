@@ -3,7 +3,6 @@
 # Imports
 import sys
 import os
-import re
 import logging
 import traceback
 import tempfile
@@ -31,7 +30,7 @@ JBOSS_SERVER_DIR = "/var/lib/jbossas/server"
 VAR_SLIMMED_DIR = os.path.join(JBOSS_SERVER_DIR, basedefs.JBOSS_PROFILE_NAME)
 ETC_JBOSS_DIR = "/etc/jbossas"
 ETC_SLIMMED_DIR = os.path.join(ETC_JBOSS_DIR, basedefs.JBOSS_PROFILE_NAME)
-PKI_BACKUP_DIR = "/etc/pki/%s-backups" % (PREFIX)
+PKI_BACKUP_DIR = "/etc/pki/%s-backups" % (BASE_NAME)
 
 # Default DB Configuration
 DB_HOST = basedefs.DB_HOST
@@ -290,7 +289,7 @@ class DB():
 def stopJboss():
     logging.debug("stoping jboss service.")
 
-    cmd = [basedefs.EXEC_SERVICE, "jboss-as", "stop"]
+    cmd = [basedefs.EXEC_SERVICE, basedefs.JBOSS_SERVICE_NAME, "stop"]
     output, rc = utils.execCmd(cmd, None, True, MSG_ERR_FAILED_STP_JBOSS_SERVICE, [])
 
     # JBoss service sometimes return zero rc even if service is still up
