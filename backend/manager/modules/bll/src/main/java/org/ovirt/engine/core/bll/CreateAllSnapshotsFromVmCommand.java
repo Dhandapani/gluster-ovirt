@@ -18,6 +18,8 @@ import org.ovirt.engine.core.common.businessentities.Snapshot.SnapshotStatus;
 import org.ovirt.engine.core.common.businessentities.Snapshot.SnapshotType;
 import org.ovirt.engine.core.common.businessentities.VM;
 import org.ovirt.engine.core.common.businessentities.VMStatus;
+import org.ovirt.engine.core.common.config.Config;
+import org.ovirt.engine.core.common.config.ConfigValues;
 import org.ovirt.engine.core.common.errors.VdcBLLException;
 import org.ovirt.engine.core.common.errors.VdcBllErrors;
 import org.ovirt.engine.core.common.validation.group.CreateEntity;
@@ -238,6 +240,7 @@ public class CreateAllSnapshotsFromVmCommand<T extends CreateAllSnapshotsFromVmP
         if (disksList.size() > 0) {
             result = validate(new SnapshotsValidator().vmNotDuringSnapshot(getVmId()))
                     && validate(vmNotDuringMigration())
+                    && validate(vmNotRunningStateless())
                     && ImagesHandler.PerformImagesChecks(getVm(),
                             getReturnValue().getCanDoActionMessages(),
                             getVm().getstorage_pool_id(),
@@ -247,7 +250,7 @@ public class CreateAllSnapshotsFromVmCommand<T extends CreateAllSnapshotsFromVmP
                             true,
                             true,
                             true,
-                            false,
+                            checkVmIsDown(),
                             true, true, disksList);
         }
 
@@ -259,11 +262,29 @@ public class CreateAllSnapshotsFromVmCommand<T extends CreateAllSnapshotsFromVmP
     }
 
     /**
+     * @return Check for VM down only if DC level does not support live snapshots.
+     */
+    private boolean checkVmIsDown() {
+        return !Config.<Boolean> GetValue(
+                ConfigValues.LiveSnapshotEnabled, getStoragePool().getcompatibility_version().getValue());
+    }
+
+    /**
      * @return Validation result that indicates if the VM is during migration or not.
      */
     private ValidationResult vmNotDuringMigration() {
         if (getVm().getstatus() == VMStatus.MigratingFrom || getVm().getstatus() == VMStatus.MigratingTo) {
             return new ValidationResult(VdcBllMessages.ACTION_TYPE_FAILED_MIGRATION_IN_PROGRESS);
+        }
+
+        return new ValidationResult();
+    }
+
+    private ValidationResult vmNotRunningStateless() {
+        if (getSnapshotDao().exists(getVm().getId(), SnapshotType.STATELESS)) {
+            VdcBllMessages message = getVm().isStatusUp() ? VdcBllMessages.ACTION_TYPE_FAILED_VM_RUNNING_STATELESS :
+                VdcBllMessages.ACTION_TYPE_FAILED_VM_HAS_STATELESS_SNAPSHOT_LEFTOVER;
+            return new ValidationResult(message);
         }
 
         return new ValidationResult();

@@ -53,7 +53,7 @@ public class VmHandler {
         mUpdateVmsStatic.AddPermittedFields(new String[] { "vm_name", "description", "domain", "os", "osType",
                 "creation_date", "num_of_monitors", "usb_policy", "is_auto_suspend", "auto_startup",
                 "dedicated_vm_for_vds", "default_display_type", "priority", "default_boot_sequence", "initrd_url",
-                "kernel_url", "kernel_params", "migrationSupport", "minAllocatedMem", "quotaId" });
+                "kernel_url", "kernel_params", "migrationSupport", "minAllocatedMem", "quotaId", "quotaName" });
         mUpdateVmsStatic.AddFields(
                 java.util.Arrays.asList(new Enum[] { VMStatus.Down }),
                 Arrays.asList(new String[] { "vds_group_id", "time_zone", "is_stateless", "nice_level", "mem_size_mb",
@@ -76,9 +76,6 @@ public class VmHandler {
                                       int vmsCount,
                                       VmTemplate vmTemplate,
                                       Guid storagePoolId,
-                                      Guid storageDomainId,
-                                      boolean checkVmTemplateImages,
-                                      boolean checkTemplateLock,
                                       int vmPriority) {
         boolean returnValue = true;
         if (MacPoolManager.getInstance().getavailableMacsCount() < vmsCount) {
@@ -93,15 +90,9 @@ public class VmHandler {
             if (isValid) {
                 if (!VmTemplateCommand.IsVmPriorityValueLegal(vmPriority, reasons)) {
                     returnValue = false;
-                } else if (checkVmTemplateImages) {
-                    returnValue = VmTemplateCommand.isVmTemplateImagesReady(vmTemplate, storageDomainId,
-                            reasons, true, checkTemplateLock, true, true, null);
                 }
-            } else {
-                if (reasons != null) {
-                    reasons.add(VdcBllMessages.IMAGE_REPOSITORY_NOT_FOUND.toString());
-                }
-                returnValue = false;
+            } else if (reasons != null) {
+                reasons.add(VdcBllMessages.IMAGE_REPOSITORY_NOT_FOUND.toString());
             }
         }
         return returnValue;
