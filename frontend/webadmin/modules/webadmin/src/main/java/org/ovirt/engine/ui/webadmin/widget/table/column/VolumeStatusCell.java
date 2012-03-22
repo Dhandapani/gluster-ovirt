@@ -29,10 +29,10 @@ public class VolumeStatusCell extends AbstractCell<GlusterVolumeEntity> {
         GlusterVolumeStatus status = volume.getStatus();
         ImageResource statusImage = null;
         switch (status) {
-        case OFFLINE:
+        case DOWN:
             statusImage = resources.downImage();
             break;
-        case ONLINE:
+        case UP:
             statusImage = resources.upImage();
             break;
         default:
