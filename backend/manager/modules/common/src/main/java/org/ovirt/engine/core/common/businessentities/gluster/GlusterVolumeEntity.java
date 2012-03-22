@@ -39,7 +39,7 @@ public class GlusterVolumeEntity extends IVdcQueryable implements BusinessEntity
 
     private GlusterVolumeType volumeType = GlusterVolumeType.DISTRIBUTE;
     private TransportType transportType = TransportType.ETHERNET;
-    private GlusterVolumeStatus status = GlusterVolumeStatus.OFFLINE;
+    private GlusterVolumeStatus status = GlusterVolumeStatus.DOWN;
 
     private int replicaCount;
     private int stripeCount;
@@ -127,6 +127,10 @@ public class GlusterVolumeEntity extends IVdcQueryable implements BusinessEntity
         this.status = status;
     }
 
+    public boolean isOnline() {
+        return this.status == GlusterVolumeStatus.UP;
+    }
+
     public int getReplicaCount() {
         return replicaCount;
     }
@@ -161,8 +165,12 @@ public class GlusterVolumeEntity extends IVdcQueryable implements BusinessEntity
         addAccessProtocol(protocol);
     }
 
-    private void addAccessProtocol(AccessProtocol protocol) {
-        this.accessProtocols.add(protocol);
+    public void addAccessProtocol(AccessProtocol protocol) {
+        accessProtocols.add(protocol);
+    }
+
+    public void removeAccessProtocol(AccessProtocol protocol) {
+        accessProtocols.remove(protocol);
     }
 
     /**
@@ -258,6 +266,10 @@ public class GlusterVolumeEntity extends IVdcQueryable implements BusinessEntity
         }
     }
 
+    public void removeOption(String optionKey) {
+        options.remove(optionKey);
+    }
+
     public void addBrick(GlusterBrickEntity GlusterBrick) {
         bricks.add(GlusterBrick);
     }
@@ -272,6 +284,23 @@ public class GlusterVolumeEntity extends IVdcQueryable implements BusinessEntity
 
     public void removeBrick(GlusterBrickEntity GlusterBrick) {
         bricks.remove(GlusterBrick);
+    }
+
+    /**
+     * Replaces an existing brick in the volume with the given new brick. The new brick will have same index as the
+     * existing one.
+     *
+     * @param existingBrick
+     * @param newBrick
+     * @return Index of the brick that was replaced. Returns -1 if the {@code existingBrick} is not found in the volume, leaving the volume unchanged.
+     */
+    public int replaceBrick(GlusterBrickEntity existingBrick, GlusterBrickEntity newBrick) {
+        int index = bricks.indexOf(existingBrick);
+        if (index != -1) {
+            GlusterBrickEntity brick = bricks.get(index);
+            brick.copyFrom(newBrick);
+        }
+        return index;
     }
 
     public List<GlusterBrickEntity> getBricks() {

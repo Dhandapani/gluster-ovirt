@@ -9,17 +9,17 @@ public enum GlusterVolumeStatus {
     /**
      * Volume is in "started" state, and can be mounted and used by clients
      */
-    ONLINE,
+    UP,
     /**
      * Volume needs to be started, for clients to be able to mount and use it
      */
-    OFFLINE;
+    DOWN;
 
     public int getValue() {
         return ordinal();
     }
 
-    public static GlusterVolumeStatus forValue(int ordinal) {
-        return values()[ordinal];
+    public static GlusterVolumeStatus forValue(int value) {
+        return values()[value];
     }
 }

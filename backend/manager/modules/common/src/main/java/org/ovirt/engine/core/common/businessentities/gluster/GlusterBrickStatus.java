@@ -11,17 +11,9 @@ public enum GlusterBrickStatus {
     /**
      * Brick process up and running
      */
-    ONLINE,
+    UP,
     /**
      * Brick process down
      */
-    OFFLINE;
-
-    public int getValue() {
-        return ordinal();
-    }
-
-    public static GlusterBrickStatus forValue(int ordinal) {
-        return values()[ordinal];
-    }
+    DOWN;
 }

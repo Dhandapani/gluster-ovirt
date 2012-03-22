@@ -32,7 +32,7 @@ public enum GlusterVolumeType {
         return ordinal();
     }
 
-    public static GlusterVolumeType forValue(int ordinal) {
-        return values()[ordinal];
+    public static GlusterVolumeType forValue(int value) {
+        return values()[value];
     }
 }

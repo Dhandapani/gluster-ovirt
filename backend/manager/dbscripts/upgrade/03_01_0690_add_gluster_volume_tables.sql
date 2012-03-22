@@ -1,4 +1,4 @@
-Create or replace FUNCTION fn_db_add_gluster_tables_03_01_0670() returns void
+Create or replace FUNCTION fn_db_add_gluster_tables_03_01_0690() returns void
 AS $procedure$
 BEGIN
 
@@ -8,13 +8,13 @@ if (not exists (select 1 from INFORMATION_SCHEMA.TABLES where table_name='gluste
     CREATE TABLE gluster_volumes
     (
      id UUID NOT NULL,
-	 cluster_id UUID NOT NULL references vds_groups(vds_group_id) on delete cascade,
+     cluster_id UUID NOT NULL references vds_groups(vds_group_id) on delete cascade,
      vol_name VARCHAR(1000) NOT NULL,
-     vol_type INTEGER NOT NULL,
-	 transport_type INTEGER NOT NULL,
-	 status INTEGER NOT NULL,
-	 replica_count INTEGER NOT NULL default 0,
-	 stripe_count INTEGER NOT NULL default 0,
+     vol_type VARCHAR(32) NOT NULL,
+     transport_type VARCHAR(32) NOT NULL,
+     status VARCHAR(32) NOT NULL,
+     replica_count INTEGER NOT NULL default 0,
+     stripe_count INTEGER NOT NULL default 0,
      _create_date TIMESTAMP WITH TIME ZONE NOT NULL default LOCALTIMESTAMP,
      _update_date TIMESTAMP WITH TIME ZONE,
      CONSTRAINT pk_gluster_volumes PRIMARY KEY(id)
@@ -32,10 +32,12 @@ if (not exists (select 1 from INFORMATION_SCHEMA.TABLES where table_name='gluste
   begin
     CREATE TABLE gluster_volume_bricks
     (
-		volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
-		server_id UUID NOT NULL references vds_static(vds_id) on delete cascade,
-		brick_dir VARCHAR(4096) NOT NULL,
-		status INTEGER NOT NULL,
+        volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
+        server_id UUID NOT NULL references vds_static(vds_id) on delete cascade,
+        brick_dir VARCHAR(4096) NOT NULL,
+        status VARCHAR(32) NOT NULL,
+         _create_date TIMESTAMP WITH TIME ZONE NOT NULL default LOCALTIMESTAMP,
+         _update_date TIMESTAMP WITH TIME ZONE,
         CONSTRAINT pk_gluster_volume_bricks PRIMARY KEY(volume_id, server_id, brick_dir)
     ) WITH OIDS;
   end;
@@ -50,9 +52,9 @@ if (not exists (select 1 from INFORMATION_SCHEMA.TABLES where table_name='gluste
   begin
     CREATE TABLE gluster_volume_options
     (
-		volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
-		option_key VARCHAR(8192) NOT NULL,
-		option_val VARCHAR(8192) NOT NULL,
+        volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
+        option_key VARCHAR(8192) NOT NULL,
+        option_val VARCHAR(8192) NOT NULL,
         CONSTRAINT pk_gluster_volume_options PRIMARY KEY(volume_id, option_key)
     ) WITH OIDS;
   end;
@@ -67,8 +69,8 @@ if (not exists (select 1 from INFORMATION_SCHEMA.TABLES where table_name='gluste
   begin
     CREATE TABLE gluster_volume_access_protocols
     (
-		volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
-		access_protocol INTEGER NOT NULL,
+        volume_id UUID NOT NULL references gluster_volumes(id) on delete cascade,
+        access_protocol VARCHAR(32) NOT NULL,
         CONSTRAINT pk_gluster_volume_access_protocols PRIMARY KEY(volume_id, access_protocol)
     ) WITH OIDS;
   end;
@@ -81,5 +83,5 @@ end if;
 END; $procedure$
 LANGUAGE plpgsql;
 
-select fn_db_add_gluster_tables_03_01_0670();
-drop function fn_db_add_gluster_tables_03_01_0670();
+select fn_db_add_gluster_tables_03_01_0690();
+drop function fn_db_add_gluster_tables_03_01_0690();

@@ -26,6 +26,7 @@ public final class SearchObjects {
     public static final String VDC_STORAGE_DOMAIN_OBJ_NAME = "STORAGE";
     public static final String DISK_IMAGE_OBJ_NAME = "DISK";
     public static final String DISK_IMAGE_PLU_OBJ_NAME = "DISKS";
+    public static final String GLUSTER_VOLUMES_OBJ_NAME = "VOLUMES";
     //special searches
     private static final String ALERT = "EVENTS: severity=alert";
     private static final String ERROR = "Events: severity=error";

@@ -13,7 +13,7 @@ import org.ovirt.engine.core.dao.DAO;
 /**
  * Interface for DB operations on Gluster Volumes.
  */
-public interface GlusterVolumeDAO extends DAO {
+public interface GlusterVolumeDao extends DAO {
 
     public void save(GlusterVolumeEntity volume);
 

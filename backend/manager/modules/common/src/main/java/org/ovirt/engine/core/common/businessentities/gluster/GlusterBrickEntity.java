@@ -20,7 +20,7 @@ public class GlusterBrickEntity extends IVdcQueryable {
     private Guid serverId;
     private String serverName;
     private String brickDirectory;
-    private GlusterBrickStatus status = GlusterBrickStatus.OFFLINE;
+    private GlusterBrickStatus status = GlusterBrickStatus.DOWN;
 
     public GlusterBrickEntity() {
     }
@@ -73,6 +73,10 @@ public class GlusterBrickEntity extends IVdcQueryable {
         this.status = status;
     }
 
+    public boolean isOnline() {
+        return status == GlusterBrickStatus.UP;
+    }
+
     public String getQualifiedName() {
         return serverName + ":" + brickDirectory;
     }
@@ -86,7 +90,7 @@ public class GlusterBrickEntity extends IVdcQueryable {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((volumeId == null) ? 0 : serverId.hashCode());
+        result = prime * result + ((volumeId == null) ? 0 : volumeId.hashCode());
         result = prime * result + ((serverId == null) ? 0 : serverId.hashCode());
         result = prime * result + ((serverName == null) ? 0 : serverName.hashCode());
         result = prime * result + ((brickDirectory == null) ? 0 : brickDirectory.hashCode());
@@ -103,7 +107,16 @@ public class GlusterBrickEntity extends IVdcQueryable {
         GlusterBrickEntity brick = (GlusterBrickEntity) obj;
         return (volumeId.equals(brick.getVolumeId())
                 && serverId.equals(brick.getServerId())
+                && serverName.equals(brick.getServerName())
                 && brickDirectory.equals(brick.getBrickDirectory())
                 && status == brick.getStatus());
+    }
+
+    public void copyFrom(GlusterBrickEntity brick) {
+        setVolumeId(brick.getVolumeId());
+        setServerId(brick.getServerId());
+        setServerName(brick.getServerName());
+        setBrickDirectory(brick.getBrickDirectory());
+        setStatus(brick.getStatus());
     }
 }

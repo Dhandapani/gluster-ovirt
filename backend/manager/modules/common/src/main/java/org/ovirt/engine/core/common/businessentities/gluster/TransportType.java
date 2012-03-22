@@ -8,11 +8,12 @@ public enum TransportType {
     ETHERNET,
     INFINIBAND;
 
+
     public int getValue() {
         return ordinal();
     }
 
-    public static TransportType forValue(int ordinal) {
-        return values()[ordinal];
+    public static TransportType forValue(int value) {
+        return values()[value];
     }
 }

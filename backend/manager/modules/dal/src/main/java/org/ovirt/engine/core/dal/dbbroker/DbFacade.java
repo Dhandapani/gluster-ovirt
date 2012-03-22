@@ -90,7 +90,7 @@ import org.ovirt.engine.core.dao.VmPoolDAO;
 import org.ovirt.engine.core.dao.VmStaticDAO;
 import org.ovirt.engine.core.dao.VmStatisticsDAO;
 import org.ovirt.engine.core.dao.VmTemplateDAO;
-import org.ovirt.engine.core.dao.gluster.GlusterVolumeDAO;
+import org.ovirt.engine.core.dao.gluster.GlusterVolumeDao;
 import org.ovirt.engine.core.utils.linq.LinqUtils;
 import org.ovirt.engine.core.utils.linq.Predicate;
 import org.ovirt.engine.core.utils.log.Log;
@@ -750,7 +750,7 @@ public class DbFacade {
     }
 
     /**
-     * Returns the singleton instance of {@link JobDao}.
+     * Returns the singleton instance of {@link StepDao}.
      *
      * @return the dao
      */
@@ -758,8 +758,13 @@ public class DbFacade {
         return getDAO(StepDao.class);
     }
 
-    public GlusterVolumeDAO getGlusterVolumeDAO() {
-        return getDAO(GlusterVolumeDAO.class);
+    /**
+     * Returns the singleton instance of {@link GlusterVolumeDao}.
+     *
+     * @return the dao
+     */
+    public GlusterVolumeDao getGlusterVolumeDao() {
+        return getDAO(GlusterVolumeDao.class);
     }
 
     public void setOnStartConnectionTimeout(int onStartConnectionTimeout) {

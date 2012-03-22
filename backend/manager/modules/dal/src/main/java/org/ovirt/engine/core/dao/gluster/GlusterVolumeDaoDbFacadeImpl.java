@@ -14,6 +14,7 @@ import org.ovirt.engine.core.common.businessentities.gluster.GlusterVolumeOption
 import org.ovirt.engine.core.common.businessentities.gluster.GlusterVolumeStatus;
 import org.ovirt.engine.core.common.businessentities.gluster.GlusterVolumeType;
 import org.ovirt.engine.core.common.businessentities.gluster.TransportType;
+import org.ovirt.engine.core.common.utils.EnumUtils;
 import org.ovirt.engine.core.compat.Guid;
 import org.ovirt.engine.core.dao.BaseDAODbFacade;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -23,8 +24,8 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 /**
  * Implementation of the DB Facade for Gluster Volumes.
  */
-public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
-        GlusterVolumeDAO {
+public class GlusterVolumeDaoDbFacadeImpl extends BaseDAODbFacade implements
+        GlusterVolumeDao {
 
     private static final ParameterizedRowMapper<GlusterVolumeEntity> volumeRowMapper = new GlusterVolumeRowMapper();
     private static final ParameterizedRowMapper<GlusterVolumeOption> optionRowMapper = new VolumeOptionRowMapper();
@@ -46,12 +47,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
         GlusterVolumeEntity volume = getCallsHandler().executeRead(
                 "GetGlusterVolumeById", volumeRowMapper,
                 createVolumeIdParams(id));
-
-        if (volume != null) {
-            volume.setBricks(getBricksOfVolume(id));
-            volume.setOptions(getOptionsOfVolume(id));
-            volume.setAccessProtocols(new HashSet<AccessProtocol>(getAccessProtocolsOfVolume(id)));
-        }
+        fetchRelatedEntities(volume);
         return volume;
     }
 
@@ -63,31 +59,24 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
                         .addValue("cluster_id", clusterId.getUuid())
                         .addValue("vol_name", volName));
 
-        if (volume != null) {
-            volume.setBricks(getBricksOfVolume(volume.getId()));
-            volume.setOptions(getOptionsOfVolume(volume.getId()));
-            volume.setAccessProtocols(new HashSet<AccessProtocol>(getAccessProtocolsOfVolume(volume.getId())));
-        }
+        fetchRelatedEntities(volume);
         return volume;
     }
 
     @Override
     public List<GlusterVolumeEntity> getByClusterId(Guid clusterId) {
-        return getCallsHandler().executeReadList("GetGlusterVolumesByClusterGuid",
-                volumeRowMapper,
-                getCustomMapSqlParameterSource().addValue("cluster_id", clusterId.getUuid()));
+        List<GlusterVolumeEntity> volumes =
+                getCallsHandler().executeReadList("GetGlusterVolumesByClusterGuid",
+                        volumeRowMapper,
+                        getCustomMapSqlParameterSource().addValue("cluster_id", clusterId.getUuid()));
+        fetchRelatedEntities(volumes);
+        return volumes;
     }
 
     @Override
     public List<GlusterVolumeEntity> getAllWithQuery(String query) {
         List<GlusterVolumeEntity> volumes = new SimpleJdbcTemplate(jdbcTemplate).query(query, volumeRowMapper);
-
-        // Update all fetched volumes with their elements like bricks, options and access protocols
-        for (GlusterVolumeEntity volume : volumes) {
-            volume.setBricks(getBricksOfVolume(volume.getId()));
-            volume.setOptions(getOptionsOfVolume(volume.getId()));
-            volume.setAccessProtocols(new HashSet<AccessProtocol>(getAccessProtocolsOfVolume(volume.getId())));
-        }
+        fetchRelatedEntities(volumes);
         return volumes;
     }
 
@@ -108,7 +97,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
     @Override
     public void updateVolumeStatus(Guid volumeId, GlusterVolumeStatus status) {
         getCallsHandler().executeModification("UpdateGlusterVolumeStatus",
-                createVolumeIdParams(volumeId).addValue("status", status.getValue()));
+                createVolumeIdParams(volumeId).addValue("status", EnumUtils.nameOrNull(status)));
     }
 
     @Override
@@ -117,7 +106,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
                 getCustomMapSqlParameterSource()
                         .addValue("cluster_id", clusterId.getUuid())
                         .addValue("vol_name", volumeName)
-                        .addValue("status", status.getValue()));
+                        .addValue("status", EnumUtils.nameOrNull(status)));
     }
 
     @Override
@@ -140,7 +129,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
                         .addValue("old_brick_dir", oldBrick.getBrickDirectory())
                         .addValue("new_server_id", newBrick.getServerId().getUuid())
                         .addValue("new_brick_dir", newBrick.getBrickDirectory())
-                        .addValue("new_status", newBrick.getStatus()));
+                        .addValue("new_status", EnumUtils.nameOrNull(newBrick.getStatus())));
     }
 
     @Override
@@ -212,7 +201,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
         return createVolumeIdParams(brick.getVolumeId())
                 .addValue("server_id", brick.getServerId().getUuid())
                 .addValue("brick_dir", brick.getBrickDirectory())
-                .addValue("status", brick.getStatus());
+                .addValue("status", EnumUtils.nameOrNull(brick.getStatus()));
     }
 
     private MapSqlParameterSource createVolumeOptionParams(GlusterVolumeOption option) {
@@ -222,7 +211,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
     }
 
     private MapSqlParameterSource createAccessProtocolParams(Guid volumeId, AccessProtocol protocol) {
-        return createVolumeIdParams(volumeId).addValue("access_protocol", protocol.getValue());
+        return createVolumeIdParams(volumeId).addValue("access_protocol", EnumUtils.nameOrNull(protocol));
     }
 
     private void insertVolumeEntity(GlusterVolumeEntity volume) {
@@ -232,9 +221,9 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
                         .addValue("id", volume.getId().getUuid())
                         .addValue("cluster_id", volume.getClusterId().getUuid())
                         .addValue("vol_name", volume.getName())
-                        .addValue("vol_type", volume.getVolumeType())
-                        .addValue("transport_type", volume.getTransportType())
-                        .addValue("status", volume.getStatus())
+                        .addValue("vol_type", EnumUtils.nameOrNull(volume.getVolumeType()))
+                        .addValue("transport_type", EnumUtils.nameOrNull(volume.getTransportType()))
+                        .addValue("status", EnumUtils.nameOrNull(volume.getStatus()))
                         .addValue("replica_count", volume.getReplicaCount())
                         .addValue("stripe_count", volume.getStripeCount()));
     }
@@ -265,6 +254,30 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
         }
     }
 
+    /**
+     * Fetches and populates related entities like bricks, options, access protocols for the given volumes
+     *
+     * @param volumes
+     */
+    private void fetchRelatedEntities(List<GlusterVolumeEntity> volumes) {
+        for (GlusterVolumeEntity volume : volumes) {
+            fetchRelatedEntities(volume);
+        }
+    }
+
+    /**
+     * Fetches and populates related entities like bricks, options, access protocols for the given volume
+     *
+     * @param volume
+     */
+    private void fetchRelatedEntities(GlusterVolumeEntity volume) {
+        if (volume != null) {
+            volume.setBricks(getBricksOfVolume(volume.getId()));
+            volume.setOptions(getOptionsOfVolume(volume.getId()));
+            volume.setAccessProtocols(new HashSet<AccessProtocol>(getAccessProtocolsOfVolume(volume.getId())));
+        }
+    }
+
     private String getHostNameOfServer(Guid serverId) {
         return new SimpleJdbcTemplate(jdbcTemplate).queryForObject("select host_name from vds_static where vds_id = ?",
                 String.class,
@@ -280,9 +293,9 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
             entity.setClusterId(Guid.createGuidFromString(rs
                     .getString("cluster_id")));
             entity.setName(rs.getString("vol_name"));
-            entity.setVolumeType(GlusterVolumeType.values()[rs.getInt("vol_type")]);
-            entity.setTransportType(TransportType.forValue(rs.getInt("transport_type")));
-            entity.setStatus(GlusterVolumeStatus.values()[rs.getInt("status")]);
+            entity.setVolumeType(GlusterVolumeType.valueOf(rs.getString("vol_type")));
+            entity.setTransportType(TransportType.valueOf(rs.getString("transport_type")));
+            entity.setStatus(GlusterVolumeStatus.valueOf(rs.getString("status")));
             entity.setReplicaCount(rs.getInt("replica_count"));
             entity.setStripeCount(rs.getInt("stripe_count"));
             return entity;
@@ -306,7 +319,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
             brick.setServerName(getHostNameOfServer(serverId));
 
             brick.setBrickDirectory(rs.getString("brick_dir"));
-            brick.setStatus(GlusterBrickStatus.forValue(rs.getInt("status")));
+            brick.setStatus(GlusterBrickStatus.valueOf(rs.getString("status")));
             return brick;
         }
     }
@@ -327,7 +340,7 @@ public class GlusterVolumeDAODbFacadeImpl extends BaseDAODbFacade implements
         @Override
         public AccessProtocol mapRow(ResultSet rs, int rowNum)
                 throws SQLException {
-            return AccessProtocol.values()[rs.getInt("access_protocol")];
+            return AccessProtocol.valueOf(rs.getString("access_protocol"));
         }
     }
 }
