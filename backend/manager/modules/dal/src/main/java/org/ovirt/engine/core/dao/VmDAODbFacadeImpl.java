@@ -26,6 +26,7 @@ import org.ovirt.engine.core.compat.NGuid;
 import org.ovirt.engine.core.compat.Version;
 import org.ovirt.engine.core.dal.dbbroker.DbFacade;
 import org.ovirt.engine.core.dal.dbbroker.DbFacadeUtils;
+import org.ovirt.engine.core.utils.MultiValueMapUtils;
 import org.ovirt.engine.core.utils.vmproperties.VmPropertiesUtils;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -36,10 +37,9 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
  */
 public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
 
-
     @Override
     public VM get(Guid id) {
-        return getCallsHandler().executeRead("GetVmByVmGuid", new VMRowMapper(), getCustomMapSqlParameterSource()
+        return getCallsHandler().executeRead("GetVmByVmGuid", VMRowMapper.instance, getCustomMapSqlParameterSource()
                 .addValue("vm_guid", id));
     }
 
@@ -55,32 +55,44 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
     @Override
     public VM getForHibernationImage(Guid id) {
         return getCallsHandler().executeRead("GetVmByHibernationImageId",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("image_id", id));
     }
 
     @Override
-    public VM getForImage(Guid id) {
-        return getCallsHandler().executeRead("GetVmByImageId", new VMRowMapper(), getCustomMapSqlParameterSource()
-                .addValue("image_guid", id));
+    public Map<Boolean, List<VM>> getForImage(Guid id) {
+        Map<Boolean, List<VM>> result = new HashMap<Boolean, List<VM>>();
+        List<VMWithPlugInfo> vms =
+                getCallsHandler().executeReadList
+                        ("GetVmsByImageId",
+                                VMWithPlugInfoRowMapper.instance,
+                                getCustomMapSqlParameterSource().addValue("image_guid", id));
+        for (VMWithPlugInfo vm : vms) {
+            MultiValueMapUtils.addToMap(vm.isPlugged(), vm.getVM(), result);
+        }
+        return result;
     }
 
     @Override
     public VM getForImageGroup(Guid id) {
-        return getCallsHandler().executeRead("GetVmByImageGroupId", new VMRowMapper(), getCustomMapSqlParameterSource()
-                .addValue("image_group_id", id));
+        return getCallsHandler().executeRead("GetVmByImageGroupId",
+                VMRowMapper.instance,
+                getCustomMapSqlParameterSource()
+                        .addValue("image_group_id", id));
     }
 
     @Override
     public List<VM> getAllForUser(Guid id) {
-        return getCallsHandler().executeReadList("GetVmsByUserId", new VMRowMapper(), getCustomMapSqlParameterSource()
-                .addValue("user_id", id));
+        return getCallsHandler().executeReadList("GetVmsByUserId",
+                VMRowMapper.instance,
+                getCustomMapSqlParameterSource()
+                        .addValue("user_id", id));
     }
 
     @Override
     public List<VM> getAllForUserWithGroupsAndUserRoles(Guid id) {
-        return getCallsHandler().executeReadList("GetVmsByUserIdWithGroupsAndUserRoles", new VMRowMapper(),
+        return getCallsHandler().executeReadList("GetVmsByUserIdWithGroupsAndUserRoles", VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("user_id", id));
     }
@@ -88,21 +100,23 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
     @Override
     public List<VM> getAllForAdGroupByName(String name) {
         return getCallsHandler().executeReadList("GetVmsByAdGroupNames",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("ad_group_names", name));
     }
 
     @Override
     public List<VM> getAllWithTemplate(Guid id) {
-        return getCallsHandler().executeReadList("GetVmsByVmtGuid", new VMRowMapper(), getCustomMapSqlParameterSource()
-                .addValue("vmt_guid", id));
+        return getCallsHandler().executeReadList("GetVmsByVmtGuid",
+                VMRowMapper.instance,
+                getCustomMapSqlParameterSource()
+                        .addValue("vmt_guid", id));
     }
 
     @Override
     public List<VM> getAllRunningForVds(Guid id) {
         return getCallsHandler().executeReadList("GetVmsRunningOnVds",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("vds_id", id));
     }
@@ -110,7 +124,7 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
     @Override
     public List<VM> getAllForDedicatedPowerClientByVds(Guid id) {
         return getCallsHandler().executeReadList("GetVmsDedicatedToPowerClientByVdsId",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("dedicated_vm_for_vds", id));
     }
@@ -128,13 +142,13 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
 
     @Override
     public List<VM> getAllUsingQuery(String query) {
-        return new SimpleJdbcTemplate(jdbcTemplate).query(query, new VMRowMapper());
+        return new SimpleJdbcTemplate(jdbcTemplate).query(query, VMRowMapper.instance);
     }
 
     @Override
     public List<VM> getAllForStorageDomain(Guid id) {
         return getCallsHandler().executeReadList("GetVmsByStorageDomainId",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("storage_domain_id", id));
     }
@@ -142,7 +156,7 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
     @Override
     public List<VM> getAllVmsRelatedToQuotaId(Guid quotaId) {
         return getCallsHandler().executeReadList("getAllVmsRelatedToQuotaId",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("quota_id", quotaId));
     }
@@ -150,14 +164,16 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
     @Override
     public List<VM> getAllRunningForStorageDomain(Guid id) {
         return getCallsHandler().executeReadList("GetRunningVmsByStorageDomainId",
-                new VMRowMapper(),
+                VMRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("storage_domain_id", id));
     }
 
     @Override
     public List<VM> getAll() {
-        return getCallsHandler().executeReadList("GetAllFromVms", new VMRowMapper(), getCustomMapSqlParameterSource());
+        return getCallsHandler().executeReadList("GetAllFromVms",
+                VMRowMapper.instance,
+                getCustomMapSqlParameterSource());
     }
 
     @Override
@@ -208,7 +224,8 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
                 .addValue("vm_guid", id));
     }
 
-    static final class VMRowMapper implements ParameterizedRowMapper<VM> {
+    private static final class VMRowMapper implements ParameterizedRowMapper<VM> {
+        public static final VMRowMapper instance = new VMRowMapper();
 
         @Override
         public VM mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -247,7 +264,6 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
             entity.setguest_cur_user_id(NGuid.createGuidFromString(rs.getString("guest_cur_user_id")));
             entity.setguest_last_logout_time(DbFacadeUtils.fromDate(rs.getTimestamp("guest_last_logout_time")));
             entity.setguest_os(rs.getString("guest_os"));
-
             entity.setcpu_user(rs.getDouble("cpu_user"));
             entity.setcpu_sys(rs.getDouble("cpu_sys"));
             entity.setelapsed_time(rs.getDouble("elapsed_time"));
@@ -263,7 +279,6 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
             entity.setnum_of_monitors(rs.getInt("num_of_monitors"));
             entity.setis_initialized(rs.getBoolean("is_initialized"));
             entity.setis_auto_suspend(rs.getBoolean("is_auto_suspend"));
-            // entity.setnum_of_cpus(rs.getInt("num_of_cpus"));
             entity.setnum_of_sockets(rs.getInt("num_of_sockets"));
             entity.setcpu_per_socket(rs.getInt("cpu_per_socket"));
             entity.setusb_policy(UsbPolicy.forValue(rs.getInt("usb_policy")));
@@ -302,9 +317,7 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
             entity.setinitrd_url(rs.getString("initrd_url"));
             entity.setkernel_url(rs.getString("kernel_url"));
             entity.setkernel_params(rs.getString("kernel_params"));
-
             entity.setvds_group_compatibility_version(new Version(rs.getString("vds_group_compatibility_version")));
-
             entity.setExitMessage(rs.getString("exit_message"));
             entity.setExitStatus(VmExitStatus.forValue(rs.getInt("exit_status")));
             entity.setVmPauseStatus(VmPauseStatus.forValue(rs.getInt("pause_status")));
@@ -316,6 +329,42 @@ public class VmDAODbFacadeImpl extends BaseDAODbFacade implements VmDAO {
             entity.setCustomProperties(VmPropertiesUtils.customProperties(predefinedProperties, userDefinedProperties));
             entity.setMinAllocatedMem(rs.getInt("min_allocated_mem"));
             entity.setHash(rs.getString("hash"));
+            return entity;
+        }
+    }
+
+    private static class VMWithPlugInfo {
+
+        public VM getVM() {
+            return vm;
+        }
+
+        public void setVM(VM vm) {
+            this.vm = vm;
+        }
+
+        public boolean isPlugged() {
+            return isPlugged;
+        }
+
+        public void setPlugged(boolean isPlugged) {
+            this.isPlugged = isPlugged;
+        }
+
+        private VM vm;
+        private boolean isPlugged;
+    }
+
+    private static final class VMWithPlugInfoRowMapper implements ParameterizedRowMapper<VMWithPlugInfo> {
+        public static final VMWithPlugInfoRowMapper instance = new VMWithPlugInfoRowMapper();
+
+        @Override
+        public VMWithPlugInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+            @SuppressWarnings("synthetic-access")
+            VMWithPlugInfo entity = new VMWithPlugInfo();
+
+            entity.setPlugged(rs.getBoolean("is_plugged"));
+            entity.setVM(VMRowMapper.instance.mapRow(rs, rowNum));
             return entity;
         }
     }

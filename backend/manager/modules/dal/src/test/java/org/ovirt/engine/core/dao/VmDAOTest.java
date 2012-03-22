@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.ovirt.engine.core.common.businessentities.VM;
 import org.ovirt.engine.core.common.businessentities.VMStatus;
 import org.ovirt.engine.core.common.businessentities.VmStatic;
-import org.ovirt.engine.core.common.businessentities.VmStatistics;
 import org.ovirt.engine.core.common.businessentities.VmTemplate;
 import org.ovirt.engine.core.compat.Guid;
 
@@ -22,15 +21,12 @@ public class VmDAOTest extends BaseDAOTestCase {
     private static final Guid VDS_GROUP_ID = new Guid("b399944a-81ab-4ec5-8266-e19ba7c3c9d1");
     private static final Guid USER_ID = new Guid("9bf7c640-b620-456f-a550-0348f366544b");
     private static final Guid STORAGE_DOMAIN_ID = new Guid("72e3a666-89e1-4005-a7ca-f7548004a9ab");
-    private static final Guid IMAGE_ID = new Guid("42058975-3d5e-484a-80c1-01c31207f578");
-    private static final Guid IMAGE_GROUP_ID = new Guid("1b26a52b-b60f-44cb-9f46-3ef333b04a35");
 
     private static final int VM_COUNT = 3;
     private VmDAO dao;
     private VM existingVm;
     private VmStatic newVmStatic;
     private VM newVm;
-    private VmStatistics newVmStatistics;
     private VmTemplate vmtemplate;
     private VmTemplate existingTemplate;
 
@@ -55,8 +51,6 @@ public class VmDAOTest extends BaseDAOTestCase {
         newVmStatic.setvm_name("New Virtual Machine");
         newVmStatic.setvds_group_id(VDS_GROUP_ID);
         newVmStatic.setvmt_guid(vmtemplate.getId());
-
-        newVmStatistics = new VmStatistics();
     }
 
     /**
@@ -80,17 +74,15 @@ public class VmDAOTest extends BaseDAOTestCase {
         assertEquals(result, existingVm);
     }
 
-
-
     /**
      * Ensures the correct VM is returned.
      */
     @Test
     public void testGetForHibernationImage() {
-        VM result = dao.getForHibernationImage(IMAGE_ID);
+        VM result = dao.getForHibernationImage(FixturesTool.IMAGE_ID);
 
         assertNotNull(result);
-        assertEquals(IMAGE_ID.toString(), result.gethibernation_vol_handle());
+        assertEquals(FixturesTool.IMAGE_ID.toString(), result.gethibernation_vol_handle());
     }
 
     /**
@@ -98,9 +90,11 @@ public class VmDAOTest extends BaseDAOTestCase {
      */
     @Test
     public void testGetForImage() {
-        VM result = dao.getForImage(IMAGE_ID);
+        Map<Boolean, List<VM>> result = dao.getForImage(FixturesTool.IMAGE_ID);
 
         assertNotNull(result);
+        assertEquals("wrong number of VMs with plugged image", 2, result.get(true).size());
+        assertEquals("wrong number of VMs with unplugged image", 1, result.get(false).size());
     }
 
     /**
@@ -115,7 +109,7 @@ public class VmDAOTest extends BaseDAOTestCase {
 
     @Test
     public void testGetForImageGroup() {
-        VM result = dao.getForImageGroup(IMAGE_GROUP_ID.getValue());
+        VM result = dao.getForImageGroup(FixturesTool.IMAGE_GROUP_ID.getValue());
 
         assertNotNull(result);
     }
@@ -229,7 +223,6 @@ public class VmDAOTest extends BaseDAOTestCase {
         assertFalse(result.isEmpty());
     }
 
-
     /**
      * Ensures the VMs related to the specified template are returned.
      */
@@ -244,7 +237,6 @@ public class VmDAOTest extends BaseDAOTestCase {
             assertEquals(existingTemplate.getId(), vm.getvmt_guid());
         }
     }
-
 
     /**
      * Ensures removing a vm works as expected.
@@ -262,6 +254,5 @@ public class VmDAOTest extends BaseDAOTestCase {
 
         assertNull(after);
     }
-
 
 }

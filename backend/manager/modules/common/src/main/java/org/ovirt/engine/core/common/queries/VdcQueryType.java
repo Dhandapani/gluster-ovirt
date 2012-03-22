@@ -16,6 +16,7 @@ public enum VdcQueryType implements Serializable {
     GetTopSizeVmsFromStorageDomain,
     GetVmCustomProperties,
     GetVmConfigurationBySnapshot(VdcQueryAuthType.User),
+    GetVmsByImageGuid,
 
     // Vds queries
     IsVdsWithSameNameExist,
@@ -69,6 +70,7 @@ public enum VdcQueryType implements Serializable {
     GetVmsByVmTemplateGuid,
     GetVmTemplatesDisks,
     GetVmTemplatesByStoragePoolId,
+    GetVmTemplatesByImageGuid,
     GetSystemPermissions,
 
     // VM Snapshot queries

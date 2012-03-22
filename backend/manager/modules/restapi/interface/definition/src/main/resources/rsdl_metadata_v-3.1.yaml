@@ -54,6 +54,7 @@ actions:
           vm.stateless: xs:boolean
           vm.cpu.topology.sockets: xs:int
           vm.placement_policy.affinity: xs:string
+          vm.placement_policy.host.id|name: xs:string
           vm.origin: xs:string
           vm.os.kernel: xs:string
     urlparams: {}
@@ -84,6 +85,7 @@ actions:
           vm.stateless: 'xs:boolean'
           vm.cpu.topology.sockets: xs:int
           vm.placement_policy.affinity: xs:string
+          vm.placement_policy.host.id|name: xs:string
           vm.origin: xs:string
           vm.os.kernel: xs:string
           vm.disks.clone: 'xs:boolean'
@@ -110,9 +112,9 @@ actions:
       signatures:
       - mandatoryArguments: {}
         optionalArguments: {action.vm.os.initRd: 'xs:string', action.vm.domain.name: 'xs:string',
-          action.host.id|name: 'xs:string', action.async: 'xs:boolean', action.vm.display.type: 'xs:string',
-          action.vm.os.kernel: 'xs:string', action.grace_period.expiry: 'xs:long',
-          action.display.type: 'xs:string', action.vm.stateless: 'xs:boolean', action.vm.os.cmdline: 'xs:string',
+          action.vm.placement_policy.host.id|name: 'xs:string', action.vm.placement_policy.affinity: 'xs:string',
+          action.async: 'xs:boolean', action.vm.os.kernel: 'xs:string', action.grace_period.expiry: 'xs:long',
+          action.vm.display.type: 'xs:string', action.vm.stateless: 'xs:boolean', action.vm.os.cmdline: 'xs:string',
           action.vm.domain.user.username: 'xs:string', action.pause: 'xs:boolean',
           action.vm.os.boot.dev: 'xs:string', action.vm.domain.user.password: 'xs:string'}
     urlparams: {}
@@ -258,6 +260,7 @@ actions:
           disk.bootable: xs:boolean
           disk.propagate_errors: xs:boolean
           disk.wipe_after_delete: xs:boolean
+          disk.storage_domains--COLLECTION: {storage_domain.id|name: 'xs:string'}
     urlparams: {}
     headers: {Content-Type: application/xml|json, Expect: 201-created}
 - name: /api/vms/{vm:id}/nics|rel=get
@@ -1105,7 +1108,8 @@ actions:
       - mandatoryArguments: {host.name: 'xs:string', host.address: 'xs:string', host.root_password: 'xs:string', host.cluster.id: 'xs:string'}
         optionalArguments: {host.port: 'xs:int', host.storage_manager.priority: 'xs:int', host.power_management.type: 'xs:string',
           host.power_management.enabled: 'xs:boolean', host.power_management.address: 'xs:string', host.power_management.user_name: 'xs:string',
-          host.power_management.password: 'xs:string', host.power_management.options.option--COLLECTION: {option.name: 'xs:string', option.value: 'xs:string'}}
+          host.power_management.password: 'xs:string', host.power_management.options.option--COLLECTION: {option.name: 'xs:string', option.value: 'xs:string'},
+          host.reboot_after_installation: 'xs:boolean'}
     urlparams: {}
     headers: {Content-Type: application/xml|json}
 - name: /api/hosts/{host:id}/activate|rel=activate
@@ -1157,14 +1161,16 @@ actions:
   request:
     body:
       parameterType: Action
-      signatures: []
+      signatures:
+      - mandatoryArguments: {action.iscsi.address: 'xs:string'}
     urlparams: {}
     headers: {Content-Type: application/xml|json}
 - name: /api/hosts/{host:id}/iscsilogin|rel=iscsilogin
   request:
     body:
       parameterType: Action
-      signatures: []
+      signatures:
+      - mandatoryArguments: {action.iscsi.address: 'xs:string', action.iscsi.target: 'xs:string'}
     urlparams: {}
     headers: {Content-Type: application/xml|json}
 - name: /api/hosts/{host:id}/nics|rel=get

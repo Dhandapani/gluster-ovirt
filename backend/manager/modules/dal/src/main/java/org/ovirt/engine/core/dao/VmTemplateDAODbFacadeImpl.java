@@ -2,7 +2,9 @@ package org.ovirt.engine.core.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.ovirt.engine.core.common.businessentities.ActionGroup;
 import org.ovirt.engine.core.common.businessentities.DisplayType;
@@ -12,7 +14,9 @@ import org.ovirt.engine.core.common.businessentities.VmTemplateStatus;
 import org.ovirt.engine.core.compat.Guid;
 import org.ovirt.engine.core.compat.NGuid;
 import org.ovirt.engine.core.dal.dbbroker.AbstractVmRowMapper;
+import org.ovirt.engine.core.utils.MultiValueMapUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
@@ -23,7 +27,7 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
     @Override
     public VmTemplate get(Guid id) {
         return getCallsHandler().executeRead("GetVmTemplateByVmtGuid",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("vmt_guid", id));
     }
@@ -31,27 +35,27 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
     @Override
     public List<VmTemplate> getAll() {
         return getCallsHandler().executeReadList("GetAllFromVmTemplates",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource());
     }
 
     @Override
     public List<VmTemplate> getAllForStorageDomain(Guid id) {
         return getCallsHandler().executeReadList("GetVmTemplatesByStorageDomainId",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("storage_domain_id", id));
     }
 
     @Override
     public List<VmTemplate> getAllWithQuery(String query) {
-        return new SimpleJdbcTemplate(jdbcTemplate).query(query, new VMTemplateRowMapper());
+        return new SimpleJdbcTemplate(jdbcTemplate).query(query, VMTemplateRowMapper.instance);
     }
 
     @Override
     public List<VmTemplate> getAllForVdsGroup(Guid id) {
         return getCallsHandler().executeReadList("GetVmTemplateByVdsGroupId",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("vds_group_id", id));
     }
@@ -59,9 +63,24 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
     @Override
     public List<VmTemplate> getAllTemplatesRelatedToQuotaId(Guid quotaId) {
         return getCallsHandler().executeReadList("GetAllVmTemplatesRelatedToQuotaId",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("quota_id", quotaId));
+    }
+
+    @Override
+    public Map<Boolean, List<VmTemplate>> getAllForImage(Guid imageId) {
+        List<VMTemplateWithPlugInfo> plugInfoList =
+                getCallsHandler().executeReadList("GetVmTemplatesByImageId",
+                        VMTemplateWithPlugInfoRowMapper.instance,
+                        getCustomMapSqlParameterSource().addValue("image_guid", imageId));
+
+        Map<Boolean, List<VmTemplate>> result = new HashMap<Boolean, List<VmTemplate>>();
+        for (VMTemplateWithPlugInfo plugInfo : plugInfoList) {
+            MultiValueMapUtils.addToMap(plugInfo.isPlugged(), plugInfo.getVmTemplate(), result);
+        }
+
+        return result;
     }
 
     @Override
@@ -128,12 +147,13 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
     @Override
     public List<VmTemplate> getTemplatesWithPermittedAction(Guid userId, ActionGroup actionGroup) {
         return getCallsHandler().executeReadList("fn_perms_get_templates_with_permitted_action",
-                new VMTemplateRowMapper(),
+                VMTemplateRowMapper.instance,
                 getCustomMapSqlParameterSource()
                         .addValue("user_id", userId).addValue("action_group_id", actionGroup.getId()));
     }
 
-    final static class VMTemplateRowMapper extends AbstractVmRowMapper<VmTemplate> {
+    private final static class VMTemplateRowMapper extends AbstractVmRowMapper<VmTemplate> {
+        public static final VMTemplateRowMapper instance = new VMTemplateRowMapper();
 
         @Override
         public VmTemplate mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -144,7 +164,6 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
             entity.setchild_count(rs.getInt("child_count"));
             entity.setmem_size_mb(rs.getInt("mem_size_mb"));
             entity.setname(rs.getString("name"));
-            // entity.setnum_of_cpus(rs.getInt("num_of_cpus"));
             entity.setos(VmOsType.forValue(rs.getInt("os")));
             entity.setvds_group_id(Guid.createGuidFromString(rs.getString("vds_group_id")));
             entity.setdomain(rs.getString("domain"));
@@ -156,6 +175,42 @@ public class VmTemplateDAODbFacadeImpl extends BaseDAODbFacade implements VmTemp
             entity.setdefault_display_type(DisplayType.forValue(rs.getInt("default_display_type")));
             entity.setQuotaId(Guid.createGuidFromString(rs.getString("quota_id")));
             entity.setQuotaName(rs.getString("quota_name"));
+            return entity;
+        }
+    }
+
+    private static class VMTemplateWithPlugInfo {
+
+        public VmTemplate getVmTemplate() {
+            return vmTemplate;
+        }
+
+        public void setVmTemplate(VmTemplate vmTemplate) {
+            this.vmTemplate = vmTemplate;
+        }
+
+        public boolean isPlugged() {
+            return isPlugged;
+        }
+
+        public void setPlugged(boolean isPlugged) {
+            this.isPlugged = isPlugged;
+        }
+
+        private VmTemplate vmTemplate;
+        private boolean isPlugged;
+    }
+
+    private static final class VMTemplateWithPlugInfoRowMapper implements ParameterizedRowMapper<VMTemplateWithPlugInfo> {
+        public static final VMTemplateWithPlugInfoRowMapper instance = new VMTemplateWithPlugInfoRowMapper();
+
+        @Override
+        public VMTemplateWithPlugInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+            @SuppressWarnings("synthetic-access")
+            VMTemplateWithPlugInfo entity = new VMTemplateWithPlugInfo();
+
+            entity.setPlugged(rs.getBoolean("is_plugged"));
+            entity.setVmTemplate(VMTemplateRowMapper.instance.mapRow(rs, rowNum));
             return entity;
         }
     }
